@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lunch Picks</title>
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lunch Picks">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,800&display=swap">
+<style>
+/* Layout: canteen tray — sticky header with week tabs + who's picking, then one "tray row" per school day of five dish cards. */
+:root {
+  --bg: #f3f6f1;
+  --surface: #ffffff;
+  --ink: #1d2b26;
+  --muted: #5d6e66;
+  --line: #d9e2dc;
+  --accent: #e2602d;
+  --accent-ink: #ffffff;
+  --accent-soft: #fde6dc;
+  --green: #2f7d5b;
+  --green-soft: #dff0e6;
+  --warn: #a5650a;
+  --warn-soft: #fbedd0;
+  --chip: #eef2ef;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Nunito Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121916; --surface: #1b2420; --ink: #e8efe9; --muted: #9db0a6; --line: #2d3a34;
+  --accent: #f07a48; --accent-ink: #1a0f0a; --accent-soft: #3d2419; --green: #6cc49a; --green-soft: #1d3329;
+  --warn: #e9b05a; --warn-soft: #3a2c14; --chip: #24302b; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #121916; --surface: #1b2420; --ink: #e8efe9; --muted: #9db0a6; --line: #2d3a34;
+  --accent: #f07a48; --accent-ink: #1a0f0a; --accent-soft: #3d2419; --green: #6cc49a; --green-soft: #1d3329;
+  --warn: #e9b05a; --warn-soft: #3a2c14; --chip: #24302b; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px 10px; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--display); font-weight: 800; font-size: 1.6rem; margin: 0; letter-spacing: -0.01em; }
+h1 span { color: var(--accent); }
+.sync { font-size: 0.78rem; color: var(--muted); }
+
+.who { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.who button { border: 2px solid var(--line); background: var(--bg); border-radius: 999px; padding: 6px 14px 6px 6px; display: flex; align-items: center; gap: 8px; font-weight: 800; }
+.who button .av { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--chip); font-family: var(--display); font-size: 0.9rem; }
+.who button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.who button[aria-pressed="true"] .av { background: var(--accent); color: var(--accent-ink); }
+.who .parent { margin-left: auto; padding: 6px 14px; }
+
+.weeks { display: flex; gap: 6px; margin-top: 10px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.weeks button { flex: 0 0 auto; border: 1px solid var(--line); background: transparent; border-radius: 8px; padding: 6px 10px; font-size: 0.85rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.weeks button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.weeks button .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-left: 6px; vertical-align: middle; }
+
+main { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 18px 48px; }
+.intro { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.intro h2 { font-family: var(--display); font-weight: 800; font-size: 1.35rem; margin: 0; text-wrap: balance; }
+.progress { font-weight: 800; font-size: 0.9rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress b { color: var(--green); }
+
+.legend { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; font-size: 0.78rem; }
+
+.day { margin-bottom: 22px; }
+.dayhead { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.dayhead h3 { font-family: var(--display); font-weight: 800; font-size: 1.1rem; margin: 0; }
+.dayhead .date { color: var(--muted); font-size: 0.85rem; }
+.dayhead .state { margin-left: auto; font-size: 0.78rem; font-weight: 800; padding: 2px 9px; border-radius: 999px; }
+.state.todo { background: var(--warn-soft); color: var(--warn); }
+.state.done { background: var(--green-soft); color: var(--green); }
+.state.locked { background: var(--chip); color: var(--muted); }
+
+.tray { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 900px) { .tray { grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); } }
+.dish { position: relative; text-align: left; background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; transition: border-color .15s, transform .15s; }
+.dish:hover:not(:disabled) { border-color: var(--accent); }
+.dish:active:not(:disabled) { transform: scale(0.98); }
+.dish .em { font-size: 1.9rem; line-height: 1; }
+.dish .nm { font-weight: 800; font-size: 0.95rem; line-height: 1.25; }
+.dish .ds { font-size: 0.8rem; color: var(--muted); }
+.dish .tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: auto; padding-top: 4px; }
+.tag { font-size: 0.7rem; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: var(--chip); color: var(--muted); letter-spacing: 0.02em; }
+.tag.cat { background: transparent; border: 1px solid var(--line); }
+.tag.veg { background: var(--green-soft); color: var(--green); }
+.tag.nh { background: var(--warn-soft); color: var(--warn); }
+.dish.sel { border-color: var(--accent); background: var(--accent-soft); }
+.dish .tick { position: absolute; top: 10px; right: 10px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 800; }
+.dish:disabled { cursor: default; opacity: 0.55; }
+.dish.sel:disabled { opacity: 1; }
+.dish.ordered { border-color: var(--green); background: var(--green-soft); opacity: 1; }
+.dish.ordered .tick { background: var(--green); }
+
+/* Parent view */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+.panel h3 { font-family: var(--display); font-weight: 800; margin: 0 0 10px; font-size: 1.05rem; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 0.88rem; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 800; }
+td.day-c { font-weight: 800; white-space: nowrap; }
+td .miss { color: var(--warn); font-weight: 800; }
+td .ord { color: var(--green); font-weight: 800; font-size: 0.75rem; display: block; }
+td .flag { color: var(--warn); font-size: 0.75rem; display: block; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.btn { border: 2px solid var(--ink); background: var(--ink); color: var(--bg); border-radius: 10px; padding: 8px 14px; font-weight: 800; }
+.btn.ghost { background: transparent; color: var(--ink); }
+.btn.good { background: var(--green); border-color: var(--green); color: var(--surface); }
+pre.list { white-space: pre-wrap; background: var(--chip); border-radius: 10px; padding: 12px; font-size: 0.85rem; margin: 12px 0 0; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.names { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 10px; }
+.names label { font-size: 0.78rem; font-weight: 800; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+.names input { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+.notes { font-size: 0.85rem; color: var(--muted); margin: 0; padding-left: 18px; max-width: 75ch; }
+.notes li { margin-bottom: 4px; }
+.banner { background: var(--green-soft); color: var(--green); font-weight: 800; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 999px; font-weight: 800; font-size: 0.85rem; z-index: 20; }
+.seg { display: inline-flex; background: var(--chip); border-radius: 12px; padding: 4px; gap: 4px; margin-bottom: 16px; }
+.seg button { border: 0; background: transparent; border-radius: 9px; padding: 7px 16px; font-weight: 800; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.sumweek { margin-bottom: 20px; }
+.sumweek h3 { font-family: var(--display); font-weight: 800; font-size: 1.05rem; margin: 0 0 8px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.sumweek h3 .progress { font-size: 0.8rem; }
+.sumgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 760px) { .sumgrid { grid-template-columns: 1fr; } }
+.sumday { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+@media (max-width: 760px) { .sumday { flex-direction: row; align-items: center; gap: 12px; } }
+.sumday .when { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); white-space: nowrap; }
+.sumday .em { font-size: 1.5rem; line-height: 1; }
+.sumday .nm { font-weight: 800; font-size: 0.9rem; line-height: 1.25; }
+.sumday .st { font-size: 0.72rem; font-weight: 800; }
+.sumday .st.ok { color: var(--green); }
+.sumday .st.wait { color: var(--muted); }
+.sumday.empty .nm { color: var(--warn); }
+.sumday.gone { opacity: 0.5; }
+.sumday .txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.panel p.help { margin: 0 0 10px; color: var(--muted); font-size: 0.88rem; max-width: 75ch; }
+.pinbox { max-width: 340px; margin: 32px auto; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 10px; text-align: center; }
+.pinbox .lock { font-size: 2rem; }
+.pinbox h2 { font-family: var(--display); font-weight: 800; margin: 0; font-size: 1.3rem; }
+.pinbox label { font-weight: 800; font-size: 0.85rem; color: var(--muted); }
+.signbox input { font-size: 1rem !important; letter-spacing: 0 !important; text-align: left !important; }
+.pinbox input { font: inherit; font-size: 1.6rem; letter-spacing: 0.4em; text-align: center; padding: 10px; border: 2px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); width: 100%; }
+.pinbox p { margin: 0; font-size: 0.82rem; }
+.pinhint { color: var(--muted); }
+.pinerr { color: var(--warn); font-weight: 800; }
+.catrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.ctl { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; cursor: pointer; background: var(--bg); font-weight: 800; font-size: 0.88rem; min-width: 0; }
+.ctl input { width: 18px; height: 18px; accent-color: var(--green); flex: 0 0 auto; margin: 0; }
+.ctl.off { opacity: 0.55; }
+.ctl.off .nm { text-decoration: line-through; }
+.ctlweek { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+.ctlday .dayhead { margin-bottom: 6px; }
+.ctllist { display: flex; flex-direction: column; gap: 6px; }
+.dishctl { font-weight: 400; }
+.dishctl .em { font-size: 1.3rem; }
+.dishctl .txt { display: flex; flex-direction: column; min-width: 0; }
+.dishctl .nm { font-weight: 800; font-size: 0.88rem; }
+.dishctl .ds { font-size: 0.75rem; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .dish { transition: none; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <h1>Lunch <span>Picks</span></h1>
+      <div class="sync" id="sync">GOe Term 4 menu</div>
+    </div>
+    <div class="who" id="who" role="group" aria-label="Who is picking"></div>
+    <div class="weeks" id="weeks" role="group" aria-label="Week"></div>
+  </div>
+</header>
+<main><div class="wrap" id="view"></div></main>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+// ---------- Menu data (GOe / Communal Gourmetz, Term 4, updated 2 Sep 2026) ----------
+// Order in each day: [Daily special, Local, Western, Vegetarian, International (non-halal)]
+// Format: "Name|tags|description". Tags: f=fish e=egg d=dairy s=soy ss=sesame n=check nuts
+const CATS = ["Daily special", "Local", "Western", "Vegetarian", "International"];
+const WEEKS = [
+ { start: "2026-10-19", days: [
+  ["Steamed Chicken Rice||Steamed chicken, seasonal vegetables","Sweet & Sour Baked Fish with Rice|f|Glazed baked fish, braised cabbage","Chicken Stew with Veggie Macaroni||Stir-fried macaroni, chicken stew","Vegetarian Fried Rice with Dumplings|s|Steamed veg dumplings, braised cabbage","Hot Chicken Salad Pita Pocket||Chicken salad pita, steamed corn"],
+  ["Steamed Fish with Egg Fried Rice|f e|Fish in light sauce, seasonal veg","Sesame Chicken Vermicelli|ss|Sin Chow mee hoon, sesame chicken, long bean","Panfried Fish with Roast Potatoes|f|Mushroom sauce, broccoli & carrots","Tomato Spaghetti with Ratatouille||Spaghetti in tomato sauce, ratatouille","Teriyaki Chicken with Rice & Broccoli|s|Baked teriyaki chicken thigh"],
+  ["Mee Goreng Set|e f|Wholemeal mee goreng, boiled egg, fishcake","Sweet Sauce Chicken with Rice||Sweet sauce chicken, sautéed broccoli","Bolognese Spaghetti|| Wholemeal spaghetti, roasted veg & mushroom","Braised Mock Chicken & Potatoes|s|With rice and sautéed broccoli","Indonesian Fried Rice||Chicken fried rice, stir-fried cabbage"],
+  ["Chicken Char Siew Rice||Chicken char siew, seasonal veg","Steamed Fish with Rice & Cai Xin|f|Fish in light sauce","Tuna Melts with Broccoli|f|Tuna melts, sautéed broccoli","Honey Veg Char Siew Bee Hoon|s|Stir-fried French beans","Thai Basil Chicken Rice||Thai mixed vegetables"],
+  ["Fried Dry Mee Siam with Fish|e f s|Boiled egg, taupok, fish, broccoli","Kung Pao Chicken Rice|n|Steamed broccoli","Minestrone Chicken Stew|| With garlic wholemeal bread","Cereal Beancurd with Mushroom Rice|s|Claypot mushroom rice, spinach","Japanese Noodle Set|f s|Fried udon, steamed fish, tofu"]
+ ]},
+ { start: "2026-10-26", days: [
+  ["Steamed Chicken Rice||Steamed chicken, seasonal vegetables","Potato Minced Chicken with Rice||Xiao bai cai with mushroom","Chicken Fried Rice with Egg Frittata|e|Broccoli & carrots","Honey Mock Chicken Noodles|s|Wholemeal noodles, broccoli","Grilled Fish Tortilla|f|Kidney bean, tomato & corn"],
+  ["Steamed Fish with Egg Fried Rice|f e|Fish in light sauce, seasonal veg","Fish Cake Hor Fun with Egg Gravy|f e|Sliced fish, fish cake, cai xin","Grilled Chicken Chop with Mash||Mushroom sauce, broccoli & carrots","Mushroom Pizza with Roast Veg||Cheeseless pizza","Braised Chicken Chinese Bun||Wholemeal mantou, stir-fried veg"],
+  ["Mee Goreng Set|e f|Wholemeal mee goreng, boiled egg, fishcake","Nasi Goreng Ayam|e|Chicken fried rice, fried egg","Grilled Fish Slider with Baked Beans|f|Wholemeal bun, cauliflower & carrots","Sweet & Sour Mock Fish with Rice|s|Cauliflower with mushrooms","Claypot Chicken Mushroom Rice||With cai xin"],
+  ["Chicken Char Siew Rice||Chicken char siew, seasonal veg","Orange Chicken with Veg Fried Rice||Orange chicken, mixed veg","Teriyaki Chicken Pizza||Steamed corn & edamame","Tomato Veg Shrimp Penne|s|Mock shrimp, broccoli & carrots","Honey Chicken Noodles||Wholemeal noodles, cauliflower"],
+  ["Fried Dry Mee Siam with Fish|e f s|Boiled egg, taupok, fish, broccoli","Cantonese Steamed Chicken||Xiao bai cai with mushroom","Fish Spaghetti|f|Tomato fish sauce, garlic bread","Tofu Fried Rice with Soy Potatoes|s|Stir-fried cabbage","Soboro Donburi|e|Minced chicken, scrambled egg, long beans"]
+ ]},
+ { start: "2026-11-02", days: [
+  ["Steamed Chicken Rice||Steamed chicken, seasonal vegetables","Baby Ginger Chicken with Rice||Braised cabbage","Roast Chicken Mac & Cheese|d|Peas, broccoli & carrots","Teriyaki Mock Meat with Mushroom Rice|s|Shanghai greens","Cheesy Fish Pita Pocket|f d|Roast potatoes & veg"],
+  ["Steamed Fish with Egg Fried Rice|f e|Fish in light sauce, seasonal veg","Cereal Fish with Rice|f|Cauliflower with mushrooms","Grilled Chicken with Butter Corn Rice|d|Sautéed veg","Double Mushroom Spaghetti||Cabbage, carrots, broccoli","Pineapple Chicken Fried Rice|e|Egg frittata, cabbage"],
+  ["Mee Goreng Set|e f|Wholemeal mee goreng, boiled egg, fishcake","Dark Sauce Bee Hoon with Fish Cake|f|Cabbage & carrot","Fisherman's Pie|f|Broccoli & carrots","Hummus Veggie Pita Pocket|ss|Roast broccoli, carrots, corn","Bulgogi Chicken with Rice||Spinach"],
+  ["Chicken Char Siew Rice||Chicken char siew, seasonal veg","Sweet & Sour Chicken with Rice|s|Braised beancurd & veg","Tomato Spinach Pizza with BBQ Chicken|d|Butter corn & peas","Shredded Potato with Rice||Mushroom broccoli","Penang Fried Kway Teow|f e|Fishcake, egg, Chinese cabbage"],
+  ["Fried Dry Mee Siam with Fish|e f s|Boiled egg, taupok, fish, broccoli","Steamed Fish with Rice|f|Garlic sautéed cauliflower","Grilled Fish Slider with Wedges|f|Wholemeal bun, cauliflower","BBQ Beancurd Fried Rice|s|Spinach","Japanese Garlic Fried Rice|d|Teriyaki chicken, cheesy broccoli"]
+ ]},
+ { start: "2026-11-09", days: [
+  ["Steamed Chicken Rice||Steamed chicken, seasonal vegetables","Chicken Kway Teow||Dark sauce, cabbage & carrots","Chicken Shepherd's Pie||Roasted vegetables","Tomato Spinach Pizza with Fries||Baked sweet potato fries","Japanese Curry Chicken with Rice||Sautéed broccoli"],
+  ["Steamed Fish with Egg Fried Rice|f e|Fish in light sauce, seasonal veg","Chicken Mushroom Stew Rice||Chinese cabbage","Tuna Cheese Burrito|f d|Roast potatoes & veg","Sweet & Sour Mock Meat with Rice|s|Luo han beancurd","Satay Chicken with Rice|n|Stir-fried satay chicken, spinach"],
+  ["Mee Goreng Set|e f|Wholemeal mee goreng, boiled egg, fishcake","Yong Chow Fried Rice|e f|Steamed ginger fish, spinach","Grilled Chicken with Potato Wedges|d|Butter cauliflower with peas","Creamy Mushroom Penne|d|Peas, carrots & zucchini","Honey Chicken Bites & Grilled Cheese|d|Wholemeal sandwich, broccoli"],
+  ["Chicken Char Siew Rice||Chicken char siew, seasonal veg","Sesame Chicken Stew with Rice|ss|Xiao bai cai with mushrooms","Mushroom Chicken Spaghetti||Broccoli & carrots","Veg Fried Rice with Potatoes||Broccoli with mushrooms","Fish Masala||Stir-fried cabbage|f"],
+  ["Fried Dry Mee Siam with Fish|e f s|Boiled egg, taupok, fish, broccoli","Silver Fish & Chicken Fried Rice|f|Braised cabbage","Margherita Pizza with BBQ Chicken|d|Roasted shredded cabbage","Soy Mock Chicken & Mushroom Rice|s|Xiao bai cai","Korean Zha Jiang Chicken Bee Hoon|s|Cabbage & carrots"]
+ ]},
+ { start: "2026-11-16", days: [
+  ["Steamed Chicken Rice||Steamed chicken, seasonal vegetables","Claypot Mee Tai Mak|e f|Fishcake, shredded chicken","Tomato Fish Stew with Garlic Bread|f|Sweet potato fries","Teriyaki Tofu with Corn Rice|s ss|Sesame spinach","Miso Fish with Mushroom Rice|f s|Sautéed broccoli"],
+  ["Steamed Fish with Egg Fried Rice|f e|Fish in light sauce, seasonal veg","Diced Chicken & Potato with Rice||Cai xin with mushrooms","Grilled Chicken Burrito|d|Cheese, potatoes, broccoli","Soy Sauce Noodles with Mock Meat|s|Stir-fried cabbage","Hot Chicken Salad Pita Pocket||Chicken salad pita, steamed corn"],
+  ["Mee Goreng Set|e f|Wholemeal mee goreng, boiled egg, fishcake","Pumpkin Rice with Braised Chicken||Broccoli with mushroom","Baked Lemon Fish with Butter Rice|f d|Cheesy broccoli","Tomato Mock Chicken Burrito|s|Potatoes, carrots & broccoli","Chicken Katsu Yakisoba||Wholemeal noodles, baked katsu"],
+  ["Chicken Char Siew Rice||Chicken char siew, seasonal veg","Shredded Chicken Hor Fun||Wholemeal Ipoh hor fun, cai xin","Cereal Fish with Spaghetti Primavera|f|Spaghetti with veggies","Sweet & Sour Mock Cutlet with Rice|s|Spinach","Ayam Bakar with Corn Rice||BBQ chicken, black sauce, cabbage"],
+  ["Fried Dry Mee Siam with Fish|e f s|Boiled egg, taupok, fish, broccoli","Spring Onion Fish with Rice|f|Cauliflower & mushroom","Black Pepper Chicken with Mash||Broccoli & carrots","Ketchup Rice Set|s|Cereal mock prawn, broccoli","Orange Fish Japchae Spaghetti|f ss|Baked fish, sesame spinach"]
+ ]}
+];
+// Fix one entry whose tag sits in the wrong slot
+WEEKS[3].days[3][4] = "Fish Masala|f|Stir-fried cabbage";
+// Meals already ordered & paid on goe.sg (one meal per child per day) (0 = Max, 1 = Liam, 2 = Harvey): date -> category index
+// Categories: 0 Daily special, 1 Local, 2 Western, 3 Vegetarian, 4 International
+const ORDERED = {
+  0: { "2026-10-20": 2, "2026-10-21": 1, "2026-10-22": 0, "2026-10-23": 1, "2026-10-26": 1 },
+  1: { "2026-10-20": 4, "2026-10-21": 1, "2026-10-22": 0, "2026-10-23": 3, "2026-10-26": 1 },
+  2: { "2026-10-20": 2, "2026-10-21": 0, "2026-10-22": 0, "2026-10-23": 4, "2026-10-26": 1 }
+};
+const TAGNAMES = { f: "Fish", e: "Egg", d: "Dairy", s: "Soy", ss: "Sesame", n: "Ask: nuts?" };
+const DAYNAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+const DEFAULT_NAMES = ["Child 1", "Child 2", "Child 3"];   // set real names in Parents → Review & order → Children
+
+function emojiFor(name) {
+  const n = name.toLowerCase();
+  const map = [["pizza","🍕"],["burrito","🌯"],["tortilla","🌮"],["pita","🥙"],["slider","🍔"],["sandwich","🥪"],["bun","🥟"],["dumpling","🥟"],["spaghetti","🍝"],["penne","🍝"],["macaroni","🍝"],["mac &","🧀"],["pie","🥧"],["noodle","🍜"],["udon","🍜"],["hor fun","🍜"],["bee hoon","🍜"],["vermicelli","🍜"],["mee","🍜"],["kway teow","🍜"],["yakisoba","🍜"],["curry","🍛"],["masala","🍛"],["stew","🍲"],["donburi","🍱"],["tofu","🍱"],["fish","🐟"],["fried rice","🍳"],["chicken rice","🍗"],["chicken","🍗"],["mock","🥦"],["rice","🍚"]];
+  for (const [k, e] of map) if (n.includes(k)) return e;
+  return "🍽️";
+}
+function parseDish(s) { const [name, tags, desc] = s.split("|"); return { name, tags: (tags || "").split(" ").filter(Boolean), desc: (desc || "").trim() }; }
+function addDays(iso, n) { const [y, m, d] = iso.split("-").map(Number); const t = new Date(Date.UTC(y, m - 1, d + n)); return t.toISOString().slice(0, 10); }
+function fmtDate(iso) { const d = new Date(iso + "T00:00:00"); return d.toLocaleDateString("en-SG", { day: "numeric", month: "short" }); }
+function weekLabel(w) { return fmtDate(w.start) + " – " + fmtDate(addDays(w.start, 4)); }
+function todayISO() { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+
+// ---------- State ----------
+const state = {
+  who: 0,            // 0..2 kid, "parent"
+  week: 0,
+  names: DEFAULT_NAMES.slice(),
+  picks: {},         // "kid__date" -> catIdx
+  ordered: {},       // weekStart -> true
+  shared: false,
+  showList: false,
+  showPrompt: false,
+  kidTab: "pick",    // "pick" | "summary"
+  hidden: {},        // "date__cat" -> true : dish removed by a parent
+  hiddenCats: {},    // cat index -> true : whole menu removed for every week
+  unlocked: false,   // parent PIN entered (in memory only; relocks on reload or when a kid tab is opened)
+  parentTab: "review",
+  pinError: false
+};
+// SHA-256 of the parent PIN (so the PIN isn't readable in the public code).
+// To change it: run  echo -n NEWPIN | shasum -a 256  and paste the result here.
+const PARENT_PIN_HASH = "a56b54e1c5933a83f79b301d0c08410a5617b868120da82b7e088c42a5a8025c";
+async function sha256(t) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join(""); }
+const today = todayISO();
+// Start on the first week that still has days to pick
+{ const next = WEEKS.findIndex(w => w.start > today); state.week = next === -1 ? WEEKS.length - 1 : next; }
+try { const w = localStorage.getItem("lp_who"); if (w !== null && w !== "parent") state.who = +w; } catch (e) {}
+
+function isPast(date) { return date <= today; }
+function orderedCat(kid, date) { return ORDERED[kid] && ORDERED[kid][date] !== undefined ? ORDERED[kid][date] : undefined; }
+function isHidden(date, ci) { return !!(state.hiddenCats[ci] || state.hidden[date + "__" + ci]); }
+function pickFor(kid, date) { const o = orderedCat(kid, date); if (o !== undefined) return o; const p = state.picks[kid + "__" + date]; return p === undefined || isHidden(date, p) ? undefined : p; }
+function hasOptions(date) { for (let ci = 0; ci < CATS.length; ci++) if (!isHidden(date, ci)) return true; return false; }
+
+// ---------- Firebase settings ----------
+// Paste the config from Firebase console → Project settings → Your apps → Web app.
+const FIREBASE_CONFIG = {
+  apiKey: "PASTE_API_KEY",
+  authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
+  projectId: "PASTE_PROJECT_ID",
+  storageBucket: "PASTE_PROJECT_ID.appspot.com",
+  messagingSenderId: "PASTE_SENDER_ID",
+  appId: "PASTE_APP_ID"
+};
+const FIREBASE_READY = !FIREBASE_CONFIG.apiKey.startsWith("PASTE");
+
+// ---------- Storage: Firestore when set up and signed in, else this device ----------
+// Firestore layout: picks/{kid}__{date} = {kid, date, cat}; config/app = {names, ordered, hidden, hiddenCats}
+let db = null, auth = null, unsubs = [];
+state.auth = FIREBASE_READY ? "checking" : "local";   // local | checking | signedout | signedin
+const local = {
+  load() { try { const s = JSON.parse(localStorage.getItem("lp_data") || "{}"); Object.assign(state.picks, s.picks || {}); if (s.names) state.names = s.names; Object.assign(state.ordered, s.ordered || {}); Object.assign(state.hidden, s.hidden || {}); Object.assign(state.hiddenCats, s.hiddenCats || {}); } catch (e) {} },
+  save() { try { localStorage.setItem("lp_data", JSON.stringify({ picks: state.picks, names: state.names, ordered: state.ordered, hidden: state.hidden, hiddenCats: state.hiddenCats })); } catch (e) {} }
+};
+if (!FIREBASE_READY) local.load();
+
+async function savePick(kid, date, cat) {
+  const key = kid + "__" + date;
+  if (cat === undefined) delete state.picks[key]; else state.picks[key] = cat;
+  render();
+  if (db) {
+    try {
+      const ref = db.collection("picks").doc(key);
+      if (cat === undefined) await ref.delete(); else await ref.set({ kid, date, cat });
+    } catch (e) { toast("Couldn't save. Check your internet connection and try again."); }
+  } else local.save();
+}
+let cfgTimer = null;
+function saveConfig() {
+  if (!db) { local.save(); return; }
+  clearTimeout(cfgTimer);
+  cfgTimer = setTimeout(async () => {
+    try { await db.collection("config").doc("app").set({ names: state.names, ordered: state.ordered, hidden: state.hidden, hiddenCats: state.hiddenCats }); }
+    catch (e) { toast("Couldn't save settings. Check your internet connection."); }
+  }, 600);
+}
+
+function listen() {
+  unsubs.forEach(u => u()); unsubs = [];
+  unsubs.push(db.collection("picks").onSnapshot(snap => {
+    const next = {};
+    snap.docs.forEach(d => { const v = d.data(); if (v && v.cat !== undefined) next[d.id] = v.cat; });
+    state.picks = next; render();
+  }, err => { toast("Can't read picks: " + (err.code || "error")); }));
+  unsubs.push(db.collection("config").doc("app").onSnapshot(snap => {
+    if (!snap.exists) return;
+    const v = snap.data();
+    if (Array.isArray(v.names)) state.names = v.names.slice(0, 3);
+    state.ordered = Object.assign({}, v.ordered || {});
+    state.hidden = Object.assign({}, v.hidden || {});
+    state.hiddenCats = Object.assign({}, v.hiddenCats || {});
+    render();
+  }, () => {}));
+}
+
+if (FIREBASE_READY) {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    auth = firebase.auth();
+    db = null;
+    const fs = firebase.firestore();
+    try { fs.enablePersistence({ synchronizeTabs: true }).catch(() => {}); } catch (e) {}
+    auth.onAuthStateChanged(user => {
+      if (user) { db = fs; state.auth = "signedin"; listen(); }
+      else { unsubs.forEach(u => u()); unsubs = []; db = null; state.auth = "signedout"; state.picks = {}; }
+      setSync(); render();
+    });
+  } catch (e) { state.auth = "local"; local.load(); }
+}
+// Hashing the PIN needs a secure page (https). GitHub Pages is https, so this only matters when opening the file directly.
+if (!window.crypto?.subtle) console.warn("PIN check needs https");
+function setSync() {
+  const t = { local: "Picks saved on this device only", checking: "Connecting…", signedout: "Sign in to share picks", signedin: "Picks shared across devices" }[state.auth];
+  document.getElementById("sync").textContent = t;
+}
+
+// ---------- Rendering ----------
+const $ = id => document.getElementById(id);
+function el(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, ""); else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(c));
+  return e;
+}
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2200); }
+
+function weekProgress(wi, kid) {
+  const w = WEEKS[wi]; let done = 0, open = 0;
+  w.days.forEach((_, i) => { const date = addDays(w.start, i); if ((isPast(date) || !hasOptions(date)) && orderedCat(kid, date) === undefined) return; open++; if (pickFor(kid, date) !== undefined) done++; });
+  return { done, open };
+}
+
+function renderHeader() {
+  const who = $("who"); who.replaceChildren();
+  state.names.forEach((n, i) => who.append(el("button", { "aria-pressed": String(state.who === i), onclick: () => setWho(i) },
+    el("span", { class: "av" }, (n || "?").trim().charAt(0).toUpperCase()), n || "Kid " + (i + 1))));
+  who.append(el("button", { class: "parent", "aria-pressed": String(state.who === "parent"), onclick: () => setWho("parent") }, state.unlocked ? "Parents" : "🔒 Parents"));
+  const weeks = $("weeks"); weeks.replaceChildren();
+  WEEKS.forEach((w, i) => weeks.append(el("button", { "aria-pressed": String(state.week === i), onclick: () => { state.week = i; render(); } },
+    weekLabel(w), state.ordered[w.start] ? el("span", { class: "dot", title: "Ordered on GOe" }) : null)));
+}
+function setWho(w) { if (w !== "parent") { state.unlocked = false; state.pinError = false; } state.who = w; try { localStorage.setItem("lp_who", String(w)); } catch (e) {} render(); window.scrollTo({ top: 0 }); }
+
+function kidTabs(view) {
+  view.append(el("div", { class: "seg", role: "group", "aria-label": "View" },
+    el("button", { "aria-pressed": String(state.kidTab === "pick"), onclick: () => { state.kidTab = "pick"; render(); } }, "Pick lunches"),
+    el("button", { "aria-pressed": String(state.kidTab === "summary"), onclick: () => { state.kidTab = "summary"; render(); } }, "My lunches")));
+}
+
+function renderSummary(kid) {
+  const view = $("view"); view.replaceChildren();
+  const name = state.names[kid] || "Kid " + (kid + 1);
+  kidTabs(view);
+  view.append(el("div", { class: "intro" }, el("h2", {}, name + "'s lunches")));
+  WEEKS.forEach((w, wi) => {
+    const pr = weekProgress(wi, kid);
+    const grid = el("div", { class: "sumgrid" });
+    w.days.forEach((dishes, di) => {
+      const date = addDays(w.start, di);
+      const p = pickFor(kid, date); const oc = orderedCat(kid, date);
+      const when = el("span", { class: "when" }, DAYNAMES[di].slice(0, 3) + " " + fmtDate(date));
+      if (p === undefined) {
+        const gone = isPast(date);
+        grid.append(el("div", { class: "sumday " + (gone ? "gone" : "empty") }, when,
+          el("span", { class: "em", "aria-hidden": "true" }, gone ? "–" : "❔"),
+          el("span", { class: "txt" }, el("span", { class: "nm" }, gone ? "No lunch picked" : "Not picked yet"))));
+      } else {
+        const d = parseDish(dishes[p]);
+        const done = oc !== undefined || state.ordered[w.start];
+        grid.append(el("div", { class: "sumday" }, when,
+          el("span", { class: "em", "aria-hidden": "true" }, emojiFor(d.name)),
+          el("span", { class: "txt" },
+            el("span", { class: "nm" }, d.name),
+            el("span", { class: "st " + (done ? "ok" : "wait") }, done ? "Ordered ✓" : "Picked · waiting for Mum"))));
+      }
+    });
+    view.append(el("section", { class: "sumweek" },
+      el("h3", {}, "Week of " + weekLabel(w), el("span", { class: "progress" }, pr.open ? pr.done + " of " + pr.open + " picked" : "")),
+      grid));
+  });
+}
+
+function renderKid(kid) {
+  if (state.kidTab === "summary") return renderSummary(kid);
+  const w = WEEKS[state.week]; const view = $("view"); view.replaceChildren();
+  const name = state.names[kid] || "Kid " + (kid + 1);
+  kidTabs(view);
+  const pr = weekProgress(state.week, kid);
+  view.append(el("div", { class: "intro" },
+    el("h2", {}, "Hi " + name + "! Pick your lunch for each day."),
+    el("div", { class: "progress" }, el("b", {}, String(pr.done)), " of " + pr.open + " days picked")));
+  if (state.ordered[w.start]) view.append(el("div", { class: "banner" }, "Mum has already ordered this week. Picks are locked."));
+  view.append(el("div", { class: "legend" }, ...CATS.map((c, ci) => state.hiddenCats[ci] ? null : el("span", { class: "tag cat" }, c)), state.hiddenCats[3] ? null : el("span", { class: "tag veg" }, "Vegetarian"), state.hiddenCats[4] ? null : el("span", { class: "tag nh" }, "Non-halal")));
+
+  w.days.forEach((dishes, di) => {
+    const date = addDays(w.start, di);
+    const oc = orderedCat(kid, date);
+    const locked = oc !== undefined || isPast(date) || !!state.ordered[w.start];
+    const pick = pickFor(kid, date);
+    let stateEl;
+    if (oc !== undefined) stateEl = el("span", { class: "state done" }, "Ordered");
+    else if (isPast(date)) stateEl = el("span", { class: "state locked" }, "Day passed");
+    else if (pick !== undefined) stateEl = el("span", { class: "state done" }, "Picked");
+    else if (!hasOptions(date)) stateEl = el("span", { class: "state locked" }, "No lunch this day");
+    else stateEl = el("span", { class: "state todo" }, "Choose one");
+    const tray = el("div", { class: "tray" });
+    dishes.forEach((raw, ci) => {
+      const d = parseDish(raw); const sel = pick === ci;
+      if (isHidden(date, ci) && !(sel && oc !== undefined)) return;
+      tray.append(el("button", {
+        class: "dish" + (sel ? " sel" : "") + (sel && oc !== undefined ? " ordered" : ""),
+        disabled: locked, "aria-pressed": String(sel),
+        onclick: () => savePick(kid, date, sel ? undefined : ci)
+      },
+        sel ? el("span", { class: "tick", "aria-hidden": "true" }, "✓") : null,
+        el("span", { class: "em", "aria-hidden": "true" }, emojiFor(d.name)),
+        el("span", { class: "nm" }, d.name),
+        d.desc ? el("span", { class: "ds" }, d.desc) : null,
+        el("span", { class: "tags" },
+          el("span", { class: "tag cat" }, CATS[ci]),
+          ci === 3 ? el("span", { class: "tag veg" }, "Veg") : null,
+          ci === 4 ? el("span", { class: "tag nh" }, "Non-halal") : null,
+          ...d.tags.map(t => el("span", { class: "tag" }, TAGNAMES[t] || t)))
+      ));
+    });
+    view.append(el("section", { class: "day" },
+      el("div", { class: "dayhead" }, el("h3", {}, DAYNAMES[di]), el("span", { class: "date" }, fmtDate(date)), stateEl), tray));
+  });
+}
+
+function orderListText(wi) {
+  const w = WEEKS[wi]; const lines = ["GOe order, week of " + weekLabel(w)];
+  state.names.forEach((n, kid) => {
+    lines.push("", (n || "Kid " + (kid + 1)).toUpperCase());
+    w.days.forEach((dishes, di) => {
+      const date = addDays(w.start, di); const p = pickFor(kid, date); const oc = orderedCat(kid, date);
+      const label = DAYNAMES[di].slice(0, 3) + " " + fmtDate(date) + ": ";
+      if (p === undefined) lines.push(label + (isPast(date) ? "(day passed)" : "NOT PICKED"));
+      else lines.push(label + CATS[p] + " – " + parseDish(dishes[p]).name + (oc !== undefined ? " (already ordered)" : ""));
+    });
+  });
+  return lines.join("\n");
+}
+
+// Builds a prompt for Claude in Chrome: add only new, future picks to the cart, then stop before payment.
+function chromeOrders(wi) {
+  const w = WEEKS[wi]; const out = [];
+  state.names.forEach((n, kid) => {
+    const items = [];
+    w.days.forEach((dishes, di) => {
+      const date = addDays(w.start, di); const p = pickFor(kid, date);
+      if (p === undefined || isPast(date) || orderedCat(kid, date) !== undefined) return;
+      items.push({ date, day: DAYNAMES[di], cat: CATS[p], dish: parseDish(dishes[p]).name, full: dishes[p] });
+    });
+    if (items.length) out.push({ name: n || "Kid " + (kid + 1), items });
+  });
+  return out;
+}
+function chromePrompt(wi) {
+  const w = WEEKS[wi]; const orders = chromeOrders(wi);
+  const L = [];
+  L.push("I'm logged in to goe.sg. Please add these school lunch orders to the cart for the week of " + weekLabel(w) + ".");
+  L.push("");
+  L.push("RULES");
+  L.push("- Only add items to the cart. Do NOT check out, pay, enter payment details, or confirm any order. A parent will review and pay.");
+  L.push("- Do not remove or change any meal that is already ordered or already in the cart. If a day already has a meal ordered or in the cart for that child, skip it and tell me.");
+  L.push("- Switch to the correct child's profile before adding each child's meals. The child names on goe.sg may be their full names; match on the name below.");
+  L.push("- Each child has one meal per school day, quantity 1. Use whichever meal slot is open for that day.");
+  L.push("- Dish names below are shortened. Match each one to the closest dish in the listed menu category for that date. If you can't find a clear match, or the day is closed for ordering, skip it and tell me. Don't guess.");
+  L.push("- If anything asks for confirmation, a top-up, or money, stop and ask me.");
+  L.push("");
+  L.push("ORDERS");
+  orders.forEach(o => {
+    L.push("");
+    L.push(o.name + ":");
+    o.items.forEach(it => L.push("- " + it.day + " " + fmtDate(it.date) + " — " + it.cat + " menu — " + it.dish));
+  });
+  L.push("");
+  L.push("WHEN DONE");
+  L.push("Open the cart and show me a summary table: child, date, dish added, price. Then list anything you skipped and why, and the cart total. Stop there and leave payment to me.");
+  return { text: L.join("\n"), count: orders.reduce((a, o) => a + o.items.length, 0) };
+}
+async function copyPrompt() {
+  const { text } = chromePrompt(state.week);
+  try { await navigator.clipboard.writeText(text); toast("Prompt copied. Paste it into the Claude side panel."); }
+  catch (e) {
+    state.showPrompt = true; render();
+    const pre = $("chromeprompt"); if (pre) { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+    toast("Text selected. Copy it from your keyboard menu.");
+  }
+}
+
+function parentTabs(view) {
+  view.append(el("div", { class: "seg", role: "group", "aria-label": "Parent view" },
+    el("button", { "aria-pressed": String(state.parentTab === "review"), onclick: () => { state.parentTab = "review"; render(); } }, "Review & order"),
+    el("button", { "aria-pressed": String(state.parentTab === "menu"), onclick: () => { state.parentTab = "menu"; render(); } }, "Menu control"),
+    el("button", { onclick: () => { state.unlocked = false; render(); toast("Parent area locked"); } }, "Lock"),
+    auth && state.auth === "signedin" ? el("button", { onclick: () => { state.unlocked = false; auth.signOut(); } }, "Sign out") : null));
+}
+
+function renderPin() {
+  const view = $("view"); view.replaceChildren();
+  const inp = el("input", { id: "pin", type: "password", inputmode: "numeric", autocomplete: "off", maxlength: "8", "aria-describedby": "pinmsg" });
+  // No <form>: some previews block form submission, so Unlock and Enter are handled directly.
+  const tryUnlock = async () => {
+    if (await sha256(inp.value.trim()) === PARENT_PIN_HASH) { state.unlocked = true; state.pinError = false; render(); }
+    else { state.pinError = true; render(); setTimeout(() => $("pin")?.focus(), 0); }
+  };
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); tryUnlock(); } });
+  const form = el("div", { class: "pinbox", role: "group", "aria-label": "Parent PIN" },
+    el("div", { class: "lock", "aria-hidden": "true" }, "🔒"),
+    el("h2", {}, "Parents only"),
+    el("label", { for: "pin" }, "Enter the parent PIN"),
+    inp,
+    el("p", { id: "pinmsg", class: state.pinError ? "pinerr" : "pinhint" }, state.pinError ? "That PIN isn't right. Try again." : "Kids: tap your name above to pick lunches."),
+    el("button", { class: "btn", type: "button", onclick: tryUnlock }, "Unlock"));
+  view.append(form);
+  setTimeout(() => inp.focus(), 0);
+}
+
+function renderParent() {
+  if (!state.unlocked) return renderPin();
+  if (state.parentTab === "menu") return renderMenuControl();
+  renderReview();
+}
+
+function renderMenuControl() {
+  const wi = state.week, w = WEEKS[wi]; const view = $("view"); view.replaceChildren();
+  parentTabs(view);
+  const hiddenThisWeek = w.days.reduce((a, dishes, di) => a + dishes.filter((_, ci) => isHidden(addDays(w.start, di), ci)).length, 0);
+  view.append(el("div", { class: "intro" },
+    el("h2", {}, "Menu control · " + weekLabel(w)),
+    el("div", { class: "progress" }, hiddenThisWeek ? hiddenThisWeek + " of 25 dishes hidden" : "All 25 dishes showing")));
+
+  // Whole menus, every week
+  const cats = el("div", { class: "catrow" });
+  CATS.forEach((c, ci) => {
+    const id = "cat" + ci;
+    const box = el("input", { type: "checkbox", id, checked: !state.hiddenCats[ci] });
+    box.addEventListener("change", () => { if (box.checked) delete state.hiddenCats[ci]; else state.hiddenCats[ci] = true; saveConfig(); render(); });
+    cats.append(el("label", { class: "ctl" + (state.hiddenCats[ci] ? " off" : ""), for: id }, box, el("span", {}, c, ci === 4 ? " (non-halal)" : "")));
+  });
+  view.append(el("div", { class: "panel" },
+    el("h3", {}, "Whole menus"),
+    el("p", { class: "help" }, "Untick a menu to hide it on every day of every week."),
+    cats));
+
+  // Dish by dish, this week
+  const days = el("div", { class: "ctlweek" });
+  w.days.forEach((dishes, di) => {
+    const date = addDays(w.start, di);
+    const list = el("div", { class: "ctllist" });
+    dishes.forEach((raw, ci) => {
+      const d = parseDish(raw); const id = "h_" + date + "_" + ci;
+      const catOff = !!state.hiddenCats[ci];
+      const box = el("input", { type: "checkbox", id, checked: !isHidden(date, ci), disabled: catOff });
+      box.addEventListener("change", () => { const k = date + "__" + ci; if (box.checked) delete state.hidden[k]; else state.hidden[k] = true; saveConfig(); render(); });
+      list.append(el("label", { class: "ctl dishctl" + (isHidden(date, ci) ? " off" : ""), for: id }, box,
+        el("span", { class: "em", "aria-hidden": "true" }, emojiFor(d.name)),
+        el("span", { class: "txt" },
+          el("span", { class: "nm" }, d.name),
+          el("span", { class: "ds" }, CATS[ci] + (d.tags.length ? " · " + d.tags.map(t => TAGNAMES[t] || t).join(", ") : "") + (catOff ? " · whole menu hidden" : "")))));
+    });
+    days.append(el("section", { class: "ctlday" },
+      el("div", { class: "dayhead" }, el("h3", {}, DAYNAMES[di]), el("span", { class: "date" }, fmtDate(date)),
+        isPast(date) ? el("span", { class: "state locked" }, "Day passed") : null),
+      list));
+  });
+  view.append(el("div", { class: "panel" },
+    el("h3", {}, "Dish by dish"),
+    el("p", { class: "help" }, "Untick a dish to hide it from the boys. If one of them already picked it, that pick is cleared and shows as \"Not picked\" in Review. Meals already paid for on GOe stay as they are."),
+    days,
+    hiddenThisWeek ? el("div", { class: "actions" },
+      el("button", { class: "btn ghost", onclick: () => {
+        w.days.forEach((_, di) => { const date = addDays(w.start, di); for (let ci = 0; ci < 5; ci++) delete state.hidden[date + "__" + ci]; });
+        saveConfig(); render(); toast("All dishes showing for this week");
+      } }, "Show every dish this week")) : null));
+}
+
+function renderReview() {
+  const wi = state.week, w = WEEKS[wi]; const view = $("view"); view.replaceChildren();
+  parentTabs(view);
+  let missing = 0, flags = 0;
+  const thead = el("tr", {}, el("th", {}, "Day"), ...state.names.map((n, i) => el("th", {}, n || "Kid " + (i + 1))));
+  const tbody = el("tbody");
+  w.days.forEach((dishes, di) => {
+    const date = addDays(w.start, di);
+    const row = el("tr", {}, el("td", { class: "day-c" }, DAYNAMES[di].slice(0, 3) + " " + fmtDate(date)));
+    state.names.forEach((_, kid) => {
+      const p = pickFor(kid, date); const oc = orderedCat(kid, date);
+      if (p === undefined) {
+        const open = !isPast(date) && hasOptions(date);
+        if (open) missing++;
+        row.append(el("td", {}, !open ? el("span", { class: "ds" }, "—") : el("span", { class: "miss" }, "Not picked")));
+      } else {
+        const d = parseDish(dishes[p]);
+        const ask = d.tags.includes("n"); if (ask) flags++;
+        row.append(el("td", {}, CATS[p] + ": " + d.name,
+          oc !== undefined ? el("span", { class: "ord" }, "Ordered & paid") : null,
+          ask ? el("span", { class: "flag" }, "Check peanuts with GOe") : null));
+      }
+    });
+    tbody.append(row);
+  });
+
+  view.append(el("div", { class: "intro" },
+    el("h2", {}, "Week of " + weekLabel(w)),
+    el("div", { class: "progress" }, missing ? el("span", { class: "miss" }, missing + " picks missing") : el("b", {}, "All picks in"))));
+
+  const listBox = state.showList ? el("pre", { class: "list", id: "orderlist" }, orderListText(wi)) : null;
+  view.append(el("div", { class: "panel" },
+    el("h3", {}, "Who picked what"),
+    el("div", { class: "tablewrap" }, el("table", {}, el("thead", {}, thead), tbody)),
+    el("div", { class: "actions" },
+      el("button", { class: "btn", onclick: () => { state.showList = !state.showList; render(); } }, state.showList ? "Hide order list" : "Show order list"),
+      el("button", { class: "btn ghost", onclick: copyList }, "Copy order list"),
+      state.ordered[w.start]
+        ? el("button", { class: "btn ghost", onclick: () => { delete state.ordered[w.start]; saveConfig(); render(); toast("Week unlocked"); } }, "Unlock this week")
+        : el("button", { class: "btn good", onclick: () => { state.ordered[w.start] = true; saveConfig(); render(); toast("Marked as ordered. Kids' picks are locked."); } }, "Mark week as ordered on GOe")),
+    listBox));
+
+  const cp = chromePrompt(wi);
+  view.append(el("div", { class: "panel" },
+    el("h3", {}, "Add to cart with Claude in Chrome"),
+    el("p", { class: "help" }, cp.count
+      ? "This prompt covers " + cp.count + " meal" + (cp.count === 1 ? "" : "s") + " that are picked but not yet ordered. Open goe.sg in Chrome, sign in, open the Claude side panel and paste it. Claude fills the cart and stops before payment, so you or your husband can check and pay."
+      : "Nothing to add yet. Once the boys pick meals for days that aren't ordered, the prompt appears here."),
+    cp.count ? el("div", { class: "actions" },
+      el("button", { class: "btn", onclick: copyPrompt }, "Copy prompt"),
+      el("button", { class: "btn ghost", onclick: () => { state.showPrompt = !state.showPrompt; render(); } }, state.showPrompt ? "Hide prompt" : "Show prompt")) : null,
+    cp.count && state.showPrompt ? el("pre", { class: "list", id: "chromeprompt" }, cp.text) : null,
+    cp.count ? el("p", { class: "help", style: "margin-top:12px" }, "After paying on goe.sg, tap \"Mark week as ordered\" above so the boys see their lunches as ordered.") : null));
+
+  const names = el("div", { class: "names" });
+  state.names.forEach((n, i) => {
+    const inp = el("input", { id: "name" + i, value: n, maxlength: "20" });
+    inp.addEventListener("input", () => { state.names[i] = inp.value; renderHeader(); saveConfig(); });
+    names.append(el("label", { for: "name" + i }, "Child " + (i + 1), inp));
+  });
+  view.append(el("div", { class: "panel" }, el("h3", {}, "Children"), names));
+
+  view.append(el("div", { class: "panel" }, el("h3", {}, "Menu notes"),
+    el("ul", { class: "notes" },
+      el("li", {}, "Allergen tags only reflect listed ingredients. GOe's central kitchen warns of cross-contact."),
+      el("li", {}, "No nut tags on the menu. Kung Pao Chicken (23 Oct) and Satay Chicken (10 Nov) often contain peanuts."),
+      el("li", {}, "Cereal coatings and pizzas may contain dairy or egg that isn't listed."),
+      el("li", {}, "International dishes come from the non-halal menu. All rice is mixed grain; all chicken is boneless."),
+      el("li", {}, "This menu ends 20 Nov. Send Claude the next menu to add more weeks."))));
+}
+
+async function copyList() {
+  const text = orderListText(state.week);
+  try { await navigator.clipboard.writeText(text); toast("Order list copied"); }
+  catch (e) {
+    state.showList = true; render();
+    const pre = $("orderlist"); if (pre) { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+    toast("Text selected. Copy it from your keyboard menu.");
+  }
+}
+
+function renderSignIn() {
+  const view = $("view"); view.replaceChildren();
+  const email = el("input", { id: "email", type: "email", autocomplete: "username", placeholder: "Family email" });
+  const pass = el("input", { id: "password", type: "password", autocomplete: "current-password", placeholder: "Password" });
+  const msg = el("p", { id: "signmsg", class: "pinhint" }, "Sign in once on this device. It stays signed in.");
+  const go = async () => {
+    msg.className = "pinhint"; msg.textContent = "Signing in…";
+    try { await auth.signInWithEmailAndPassword(email.value.trim(), pass.value); }
+    catch (e) { msg.className = "pinerr"; msg.textContent = "That email or password isn't right. Check them and try again."; }
+  };
+  pass.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); go(); } });
+  view.append(el("div", { class: "pinbox signbox", role: "group", "aria-label": "Family sign-in" },
+    el("div", { class: "lock", "aria-hidden": "true" }, "🍱"),
+    el("h2", {}, "Family sign-in"),
+    el("label", { for: "email" }, "Email"), email,
+    el("label", { for: "password" }, "Password"), pass,
+    msg,
+    el("button", { class: "btn", type: "button", onclick: go }, "Sign in")));
+}
+
+function render() {
+  if (state.auth === "checking") { $("who").replaceChildren(); $("weeks").replaceChildren(); $("view").replaceChildren(el("p", { class: "pinhint", style: "text-align:center;margin-top:40px" }, "Loading…")); return; }
+  if (state.auth === "signedout") { $("who").replaceChildren(); $("weeks").replaceChildren(); renderSignIn(); return; }
+  if (state.who !== "parent" && !(state.who >= 0 && state.who < 3)) state.who = 0;
+  renderHeader();
+  if (state.who === "parent") renderParent(); else renderKid(state.who);
+}
+setSync();
+render();
+</script>
+</body>
+</html>
