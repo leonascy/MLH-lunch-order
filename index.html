@@ -534,7 +534,9 @@ function chromePrompt(wi) {
   L.push("- Switch to the correct child's profile before adding each child's meals. The child names on goe.sg may be their full names; match on the name below.");
   L.push("- Each child has one meal per school day, quantity 1. Use whichever meal slot is open for that day.");
   L.push("- Dish names below are shortened. Match each one to the closest dish in the listed menu category for that date. If you can't find a clear match, or the day is closed for ordering, skip it and tell me. Don't guess.");
-  L.push("- If anything asks for confirmation, a top-up, or money, stop and ask me.");
+  L.push("- After each \"add to cart\", a dark banner starting \"goe.sg says:\" appears at the top of the page for a few seconds. Read it straight away. If it says the dish was added, move on. If it shows anything else (sold out, cut-off passed, error), skip that meal and note the message.");
+  L.push("- If a popup with OK and Cancel buttons appears, don't click either. Stop and ask me.");
+  L.push("- If anything asks for a top-up or money, stop and ask me.");
   L.push("");
   L.push("ORDERS");
   orders.forEach(o => {
@@ -544,7 +546,7 @@ function chromePrompt(wi) {
   });
   L.push("");
   L.push("WHEN DONE");
-  L.push("Open the cart and show me a summary table: child, date, dish added, price. Then list anything you skipped and why, and the cart total. Stop there and leave payment to me.");
+  L.push("Open the cart and check it against the ORDERS list above. Show me a summary table: child, date, dish in cart, price, and whether it matches. Then list anything you skipped and why, and the cart total. Stop there and leave payment to me.");
   return { text: L.join("\n"), count: orders.reduce((a, o) => a + o.items.length, 0) };
 }
 async function copyPrompt() {
