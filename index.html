@@ -248,7 +248,13 @@ const ORDERED = {
   1: { "2026-10-20": 4, "2026-10-21": 1, "2026-10-22": 0, "2026-10-23": 3, "2026-10-26": 1 },
   2: { "2026-10-20": 2, "2026-10-21": 0, "2026-10-22": 0, "2026-10-23": 4, "2026-10-26": 1 }
 };
-const TAGNAMES = { f: "Fish", e: "Egg", d: "Dairy", s: "Soy", ss: "Sesame", n: "Ask: nuts?" };
+// Meal slot on goe.sg: Max has Early Recess on Fridays; everyone else, every other day, has Lunch.
+function slotFor(kid, date) {
+  const isMax = (state.names[kid] || "").trim().toLowerCase().startsWith("max");
+  const isFri = new Date(date + "T12:00:00Z").getUTCDay() === 5;
+  return isMax && isFri ? "Early Recess" : "Lunch";
+}
+  const TAGNAMES = { f: "Fish", e: "Egg", d: "Dairy", s: "Soy", ss: "Sesame", n: "Ask: nuts?" };
 const DAYNAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const DEFAULT_NAMES = ["Child 1", "Child 2", "Child 3"];   // set real names in Parents → Review & order → Children
 
@@ -461,9 +467,9 @@ function renderKid(kid) {
 
   w.days.forEach((dishes, di) => {
     const date = addDays(w.start, di);
-    const oc = orderedCat(kid, date);
-    const locked = oc !== undefined || isPast(date) || !!state.ordered[w.start];
     const pick = pickFor(kid, date);
+    const oc = orderedCat(kid, date) !== undefined ? orderedCat(kid, date) : (state.ordered[w.start] && pick !== undefined ? pick : undefined);
+    const locked = oc !== undefined || isPast(date) || !!state.ordered[w.start];
     let stateEl;
     if (oc !== undefined) stateEl = el("span", { class: "state done" }, "Ordered");
     else if (isPast(date)) stateEl = el("span", { class: "state locked" }, "Day passed");
@@ -503,7 +509,7 @@ function orderListText(wi) {
       const date = addDays(w.start, di); const p = pickFor(kid, date); const oc = orderedCat(kid, date);
       const label = DAYNAMES[di].slice(0, 3) + " " + fmtDate(date) + ": ";
       if (p === undefined) lines.push(label + (isPast(date) ? "(day passed)" : "NOT PICKED"));
-      else lines.push(label + CATS[p] + " – " + parseDish(dishes[p]).name + (oc !== undefined ? " (already ordered)" : ""));
+      else lines.push(label + slotFor(kid, date) + " – " + parseDish(dishes[p]).name + " (S)" + (oc !== undefined ? " (already ordered)" : ""));
     });
   });
   return lines.join("\n");
@@ -516,8 +522,8 @@ function chromeOrders(wi) {
     const items = [];
     w.days.forEach((dishes, di) => {
       const date = addDays(w.start, di); const p = pickFor(kid, date);
-      if (p === undefined || isPast(date) || orderedCat(kid, date) !== undefined) return;
-      items.push({ date, day: DAYNAMES[di], cat: CATS[p], dish: parseDish(dishes[p]).name, full: dishes[p] });
+      if (p === undefined || isPast(date) || orderedCat(kid, date) !== undefined || state.ordered[w.start]) return;
+      items.push({ date, day: DAYNAMES[di], cat: CATS[p], dish: parseDish(dishes[p]).name, full: dishes[p], slot: slotFor(kid, date) });
     });
     if (items.length) out.push({ name: n || "Kid " + (kid + 1), items });
   });
@@ -532,7 +538,8 @@ function chromePrompt(wi) {
   L.push("- Only add items to the cart. Do NOT check out, pay, enter payment details, or confirm any order. A parent will review and pay.");
   L.push("- Do not remove or change any meal that is already ordered or already in the cart. If a day already has a meal ordered or in the cart for that child, skip it and tell me.");
   L.push("- Switch to the correct child's profile before adding each child's meals. The child names on goe.sg may be their full names; match on the name below.");
-  L.push("- Each child has one meal per school day, quantity 1. Use whichever meal slot is open for that day.");
+  L.push("- Each child has one meal per school day, quantity 1. Order it in the meal slot named for that day below (Lunch, or Early Recess). If that slot isn't available, skip the day and tell me.");
+  L.push("- Portion size: always choose Small (S). Dishes are listed with a size such as \"(S)\" or \"(L)\". Never add a Large (L). If no Small is offered for a dish, skip it and tell me.");
   L.push("- Dish names below are shortened. Match each one to the closest dish in the listed menu category for that date. If you can't find a clear match, or the day is closed for ordering, skip it and tell me. Don't guess.");
   L.push("- After each \"add to cart\", a dark banner starting \"goe.sg says:\" appears at the top of the page for a few seconds. Read it straight away. If it says the dish was added, move on. If it shows anything else (sold out, cut-off passed, error), skip that meal and note the message.");
   L.push("- If a popup with OK and Cancel buttons appears, don't click either. Stop and ask me.");
@@ -542,11 +549,11 @@ function chromePrompt(wi) {
   orders.forEach(o => {
     L.push("");
     L.push(o.name + ":");
-    o.items.forEach(it => L.push("- " + it.day + " " + fmtDate(it.date) + " — " + it.cat + " menu — " + it.dish));
+    o.items.forEach(it => L.push("- " + it.day + " " + fmtDate(it.date) + " — " + it.slot + " — " + it.cat + " menu — " + it.dish + " — Small (S)"));
   });
   L.push("");
   L.push("WHEN DONE");
-  L.push("Open the cart and check it against the ORDERS list above. Show me a summary table: child, date, dish in cart, price, and whether it matches. Then list anything you skipped and why, and the cart total. Stop there and leave payment to me.");
+  L.push("Open the cart and check it against the ORDERS list above. Show me a summary table: child, date, meal slot, dish in cart, price, and whether it matches. Then list anything you skipped and why, and the cart total. Stop there and leave payment to me.");
   return { text: L.join("\n"), count: orders.reduce((a, o) => a + o.items.length, 0) };
 }
 async function copyPrompt() {
@@ -664,8 +671,10 @@ function renderReview() {
       } else {
         const d = parseDish(dishes[p]);
         const ask = d.tags.includes("n"); if (ask) flags++;
+        const slot = slotFor(kid, date);
         row.append(el("td", {}, CATS[p] + ": " + d.name,
-          oc !== undefined ? el("span", { class: "ord" }, "Ordered & paid") : null,
+          slot !== "Lunch" ? el("span", { class: "flag" }, slot) : null,
+          oc !== undefined || state.ordered[w.start] ? el("span", { class: "ord" }, "Ordered & paid") : null,
           ask ? el("span", { class: "flag" }, "Check peanuts with GOe") : null));
       }
     });
